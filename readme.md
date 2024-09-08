@@ -8,13 +8,15 @@
 - Protocol Buffers: 用于定义服务接口和消息格式
 - cpprestsdk: 用于实现HTTP服务
 - glog: 用于日志记录
+- Folly: Facebook的开源C++库,提供了许多有用的组件和工具
+- Boost: 广泛使用的C++库集合,提供了许多有用的工具和算法
 - Docker: 用于容器化部署
 
 ## 目录结构
 
 ```
 echoserver/
-��── protos/
+── protos/
 │ ├── service.proto
 │ ├── service.pb.cc
 │ └── service.pb.h
@@ -49,17 +51,37 @@ echoserver/
 
 2. 在项目根目录下构建Docker镜像:
    ```
-   docker build -t mygrpcservice .
+   docker build -t mygrpcservice_develop .
    ```
 
-3. 运行Docker容器:
+   注意：如果您有自定义的SSH配置文件，可以将其放在项目根目录的 `.ssh/` 文件夹中。
+   Dockerfile会尝试复制这个文件（如果存在的话）。如果没有，构建过程会继续而不会失败。
+
+3. 运行Docker容器（包含SSH配置，后台运行）:
    ```
-   docker run -it -p 50051:50051 -p 8080:8080 mygrpcservice
+   docker run -it -d \
+     -p 50051:50051 -p 8080:8080 \
+     -v $HOME/.ssh:/root/.ssh:ro \
+     --name mygrpcservice \
+     mygrpcservice_develop
    ```
 
-4. 服务将在以下端口启动:
-   - gRPC服务: localhost:50051
-   - HTTP服务: http://localhost:8080
+   这个命令会在后台启动容器，并将您的本地SSH配置挂载到容器中。
+
+4. 查看容器日志（如果需要）:
+   ```
+   docker logs mygrpcservice
+   ```
+
+5. 停止容器:
+   ```
+   docker stop mygrpcservice
+   ```
+
+6. 删除容器:
+   ```
+   docker rm mygrpcservice
+   ```
 
 ## 注意事项
 

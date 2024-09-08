@@ -1,7 +1,7 @@
 #include "hello_service.h"
-#include <glog/logging.h>
+#include "../common.h"
 
 std::string HelloService::say_hello(const std::string& name) {
-    LOG(INFO) << "say hello" << name;
+    LOG_INFO("Saying hello to " << name);
     return hello_dao_->get_greeting(name);
 }

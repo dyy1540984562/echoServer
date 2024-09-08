@@ -5,17 +5,14 @@ set(CMAKE_CXX_STANDARD 17)
 
 # 在 CMakeLists.txt 的开头添加
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-
+# 手动指定库路径 告诉 CMake 在链接时也要查看这个目录
+link_directories(/lib/x86_64-linux-gnu/)
 # 查找依赖库
 find_package(Protobuf REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GRPC REQUIRED grpc++)
 pkg_check_modules(GRPCPP REQUIRED grpc++_unsecure)
 find_package(cpprestsdk REQUIRED)
-
-# # 手动设置 folly 的路径
-# set(FOLLY_INCLUDE_DIRS "/usr/include")
-# set(FOLLY_LIBRARIES "/usr/lib/x86_64-linux-gnu/libfolly.so")
 
 # 使用 pkg-config 查找 glog
 pkg_check_modules(GLOG REQUIRED libglog)
@@ -26,6 +23,12 @@ find_package(GTest REQUIRED)
 # 设置 Protoc 和 gRPC 插件路径
 find_program(PROTOC protoc)
 find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
+
+# 添加Boost库
+find_package(Boost REQUIRED COMPONENTS system thread filesystem)
+
+# 添加 gflags 库
+find_package(gflags REQUIRED)
 
 # 生成 Protobuf 和 gRPC 源代码
 set(PROTO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/protos/service.proto")
@@ -50,6 +53,7 @@ add_custom_command(
 add_executable(myserver
     src/main.cpp
     src/interface/grpc_handler.cpp
+    src/interface/grpc_handler_async.cpp
     src/interface/http_handler.cpp
     src/service/hello_service.cpp
     src/dao/hello_dao.cpp
@@ -70,20 +74,24 @@ target_include_directories(myserver PRIVATE
     ${Protobuf_INCLUDE_DIRS}
     ${GLOG_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
-    # ${FOLLY_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
+    ${gflags_INCLUDE_DIR}
 )
 
 # 修改设置链接库
 target_link_libraries(myserver
     ${GRPC_LIBRARIES}
     ${GRPCPP_LIBRARIES}
+    libgpr.so.6
     ${Protobuf_LIBRARIES}
     cpprestsdk::cpprest
     ${GLOG_LIBRARIES}
     GTest::GTest
     GTest::Main
-    # ${FOLLY_LIBRARIES}
+    ${Boost_LIBRARIES}
+    gflags
     pthread
+    Boost::filesystem
 )
 
 # 添加 gRPC 客户端测试可执行文件
@@ -102,7 +110,7 @@ target_include_directories(grpc_client_test PRIVATE
     ${Protobuf_INCLUDE_DIRS}
     ${GLOG_INCLUDE_DIRS}
     ${GTEST_INCLUDE_DIRS}
-    # ${FOLLY_INCLUDE_DIRS}
+    ${gflags_INCLUDE_DIR}
 )
 
 target_link_libraries(grpc_client_test
@@ -112,7 +120,7 @@ target_link_libraries(grpc_client_test
     ${GLOG_LIBRARIES}
     GTest::GTest
     GTest::Main
-    # ${FOLLY_LIBRARIES}
+    gflags
 )
 
 # 添加 HTTP 客户端测试可执行文件
@@ -125,5 +133,5 @@ target_link_libraries(http_client_test
     ${GLOG_LIBRARIES}
     GTest::GTest
     GTest::Main
-    # ${FOLLY_LIBRARIES}
+    gflags
 )
